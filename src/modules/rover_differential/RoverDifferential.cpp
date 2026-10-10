@@ -81,35 +81,31 @@ void RoverDifferential::Run()
 		}
 	}
 
-	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
-
-		_was_armed = true;
-		generateSetpoints();
-		updateControllers();
-
-	} else if (_was_armed) { // Reset all controllers and stop the vehicle
-		reset();
-		_differential_act_control.stopVehicle();
-		_was_armed = false;
-	}
-
-	// DYX final motor-output freshness gate, independent of Commander heartbeat.
-	// The normal control loop has already published, so this ZERO publication
-	// overrides stale outputs each run until the stop latch is released.
+	// DYX combined DDS safety: check freshness BEFORE controller updates.
+	// Publishing a zero AFTER a nonzero motor command is NOT a valid watchdog.
+	// A stall remains latched until the vehicle is disarmed AND out of Offboard.
 	if (!_vehicle_control_mode.flag_armed && !_vehicle_control_mode.flag_control_offboard_enabled) {
 		_dyx_command_stall_latched = false;
+		_dyx_combined_mode_seen = false;
+		_dyx_stop_reset_done = false;
 	}
 
 	if (_vehicle_control_mode.flag_armed && _vehicle_control_mode.flag_control_offboard_enabled) {
+		const hrt_abstime now = hrt_absolute_time();
 		offboard_control_mode_s mode{};
 		trajectory_setpoint_s trajectory{};
 		const bool have_mode = _dyx_offboard_mode_sub.copy(&mode);
 		const bool combined = have_mode && mode.velocity && mode.body_rate
 				      && !mode.position && !mode.attitude;
 
-		if (combined) {
-			const hrt_abstime now = hrt_absolute_time();
-			const bool valid = _dyx_trajectory_sub.copy(&trajectory)
+		_dyx_combined_mode_seen |= combined;
+
+		// After first combined-mode command, switching the Offboard control
+		// flags is not allowed to bypass the latch while still armed.
+		if (_dyx_combined_mode_seen) {
+			const bool valid = combined && mode.timestamp > 0 && now >= mode.timestamp
+					   && (now - mode.timestamp) < 500_ms
+					   && _dyx_trajectory_sub.copy(&trajectory)
 					   && trajectory.timestamp > 0 && now >= trajectory.timestamp
 					   && (now - trajectory.timestamp) < 500_ms
 					   && PX4_ISFINITE(trajectory.velocity[0])
@@ -120,10 +116,31 @@ void RoverDifferential::Run()
 				_dyx_command_stall_latched = true;
 			}
 		}
+	}
 
-		if (_dyx_command_stall_latched) {
-			_differential_act_control.stopVehicle();
+	// Preserve RC manual control outside Offboard. In armed Offboard, stop
+	// before calling generateSetpoints()/updateControllers() on every cycle.
+	if (_vehicle_control_mode.flag_armed && _vehicle_control_mode.flag_control_offboard_enabled
+	    && _dyx_command_stall_latched) {
+		if (!_dyx_stop_reset_done) {
+			reset();
+			_dyx_stop_reset_done = true;
 		}
+
+		_differential_act_control.stopVehicle();
+		return;
+	}
+
+	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
+
+		_was_armed = true;
+		generateSetpoints();
+		updateControllers();
+
+	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		reset();
+		_differential_act_control.stopVehicle();
+		_was_armed = false;
 	}
 
 }

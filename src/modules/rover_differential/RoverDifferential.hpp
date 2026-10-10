@@ -137,4 +137,6 @@ private:
 	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass
 	bool _was_armed{false}; // True if the vehicle was armed before the last reset
 	bool _dyx_command_stall_latched{false}; // reset only after disarm AND Offboard exit
+	bool _dyx_combined_mode_seen{false}; // prevents Offboard mode-switch bypass
+	bool _dyx_stop_reset_done{false}; // reset controllers once per stale-command latch
 };
