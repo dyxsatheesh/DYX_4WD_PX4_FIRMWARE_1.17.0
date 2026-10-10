@@ -93,6 +93,39 @@ void RoverDifferential::Run()
 		_was_armed = false;
 	}
 
+	// DYX final motor-output freshness gate, independent of Commander heartbeat.
+	// The normal control loop has already published, so this ZERO publication
+	// overrides stale outputs each run until the stop latch is released.
+	if (!_vehicle_control_mode.flag_armed && !_vehicle_control_mode.flag_control_offboard_enabled) {
+		_dyx_command_stall_latched = false;
+	}
+
+	if (_vehicle_control_mode.flag_armed && _vehicle_control_mode.flag_control_offboard_enabled) {
+		offboard_control_mode_s mode{};
+		trajectory_setpoint_s trajectory{};
+		const bool have_mode = _dyx_offboard_mode_sub.copy(&mode);
+		const bool combined = have_mode && mode.velocity && mode.body_rate
+				      && !mode.position && !mode.attitude;
+
+		if (combined) {
+			const hrt_abstime now = hrt_absolute_time();
+			const bool valid = _dyx_trajectory_sub.copy(&trajectory)
+					   && trajectory.timestamp > 0 && now >= trajectory.timestamp
+					   && (now - trajectory.timestamp) < 500_ms
+					   && PX4_ISFINITE(trajectory.velocity[0])
+					   && PX4_ISFINITE(trajectory.velocity[1])
+					   && PX4_ISFINITE(trajectory.yawspeed);
+
+			if (!valid) {
+				_dyx_command_stall_latched = true;
+			}
+		}
+
+		if (_dyx_command_stall_latched) {
+			_differential_act_control.stopVehicle();
+		}
+	}
+
 }
 
 void RoverDifferential::generateSetpoints()

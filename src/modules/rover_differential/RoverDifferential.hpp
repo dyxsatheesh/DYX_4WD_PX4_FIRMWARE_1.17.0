@@ -48,6 +48,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/trajectory_setpoint.h>
 
 // Local includes
 #include "DifferentialActControl/DifferentialActControl.hpp"
@@ -116,6 +118,8 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _dyx_offboard_mode_sub{ORB_ID(offboard_control_mode)};
+	uORB::Subscription _dyx_trajectory_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
@@ -132,4 +136,5 @@ private:
 	// Variables
 	bool _sanity_checks_passed{true}; // True if checks for all active controllers pass
 	bool _was_armed{false}; // True if the vehicle was armed before the last reset
+	bool _dyx_command_stall_latched{false}; // reset only after disarm AND Offboard exit
 };

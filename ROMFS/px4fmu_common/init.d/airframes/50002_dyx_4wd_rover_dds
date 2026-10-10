@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# @name DYX 4WD Rover (Ethernet DDS)
+# @type Rover
+# @class Rover
+#
+
+. ${R}etc/init.d/rc.rover_differential_defaults
+
+# Dedicated Jetson/PX4 Ethernet XRCE-DDS, Jetson Agent at 10.41.10.1.
+# Does not set PX4's own eth0 address (configure that separately).
+param set MAV_2_CONFIG 0
+param set UXRCE_DDS_CFG 1000
+param set UXRCE_DDS_PRT 8888
+param set UXRCE_DDS_AG_IP 170461697
+param set UXRCE_DDS_PTCFG 0
+param set UXRCE_DDS_SYNCT 1
+
+# Offboard link-loss policy; verify after boot.
+param set COM_OF_LOSS_T 0.5
+param set COM_OBL_RC_ACT 7
+
+# Actuator function/PWM safety policy only. Does NOT itself implement
+# a firmware-owned three-second spray pulse; that port remains separate.
+param set PWM_AUX_FUNC5 301
+param set PWM_AUX_MIN5 1200
+param set PWM_AUX_MAX5 1400
+param set PWM_AUX_DIS5 1200
+param set PWM_AUX_FAIL5 1200

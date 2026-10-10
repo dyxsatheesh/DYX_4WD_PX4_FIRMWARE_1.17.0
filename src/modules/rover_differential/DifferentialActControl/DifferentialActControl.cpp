@@ -105,6 +105,6 @@ void DifferentialActControl::stopVehicle()
 	actuator_motors.reversible_flags = _param_r_rev.get();
 	actuator_motors.control[0] = 0.f;
 	actuator_motors.control[1] = 0.f;
-	actuator_motors.timestamp = _timestamp;
+	actuator_motors.timestamp = hrt_absolute_time();
 	_actuator_motors_pub.publish(actuator_motors);
 }

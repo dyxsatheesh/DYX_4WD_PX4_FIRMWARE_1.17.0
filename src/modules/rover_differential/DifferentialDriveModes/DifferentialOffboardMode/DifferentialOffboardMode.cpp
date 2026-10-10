@@ -57,7 +57,43 @@ void DifferentialOffboardMode::offboardControl()
 	trajectory_setpoint_s trajectory_setpoint{};
 	_trajectory_setpoint_sub.copy(&trajectory_setpoint);
 
-	if (offboard_control_mode.position) {
+	// DYX: joint speed and yaw rate for a differential rover. Speed is signed
+	// in body X, inferred from the requested NED velocity and *current* yaw.
+	// No absolute heading setpoint is published in this branch.
+	if (offboard_control_mode.velocity && offboard_control_mode.body_rate
+	    && !offboard_control_mode.position && !offboard_control_mode.attitude) {
+		const hrt_abstime now = hrt_absolute_time();
+		vehicle_attitude_s attitude{};
+		const bool have_attitude = _vehicle_attitude_sub.copy(&attitude);
+		const bool fresh = trajectory_setpoint.timestamp > 0 && now >= trajectory_setpoint.timestamp
+				   && (now - trajectory_setpoint.timestamp) < 500_ms
+				   && PX4_ISFINITE(trajectory_setpoint.velocity[0])
+				   && PX4_ISFINITE(trajectory_setpoint.velocity[1])
+				   && PX4_ISFINITE(trajectory_setpoint.yawspeed)
+				   && have_attitude && attitude.timestamp > 0
+				   && now >= attitude.timestamp && (now - attitude.timestamp) < 500_ms;
+
+		float speed = 0.f;
+		float yaw_rate = 0.f;
+
+		if (fresh) {
+			const float current_yaw = Eulerf(Quatf(attitude.q)).psi();
+			speed = trajectory_setpoint.velocity[0] * cosf(current_yaw)
+				+ trajectory_setpoint.velocity[1] * sinf(current_yaw);
+			yaw_rate = trajectory_setpoint.yawspeed;
+		}
+
+		rover_speed_setpoint_s speed_sp{};
+		speed_sp.timestamp = now;
+		speed_sp.speed_body_x = speed;
+		_rover_speed_setpoint_pub.publish(speed_sp);
+
+		rover_rate_setpoint_s rate_sp{};
+		rate_sp.timestamp = now;
+		rate_sp.yaw_rate_setpoint = yaw_rate;
+		_rover_rate_setpoint_pub.publish(rate_sp);
+
+	} else if (offboard_control_mode.position) {
 		rover_position_setpoint_s rover_position_setpoint{};
 		rover_position_setpoint.timestamp = hrt_absolute_time();
 		rover_position_setpoint.position_ned[0] = trajectory_setpoint.position[0];

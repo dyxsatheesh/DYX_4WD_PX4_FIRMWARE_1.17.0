@@ -53,8 +53,26 @@ publications:
   - topic: /fmu/out/transponder_report
     type: px4_msgs::msg::TransponderReport
  
-  # - topic: /fmu/out/vehicle_angular_velocity
-  #   type: px4_msgs::msg::VehicleAngularVelocity
+  - topic: /fmu/out/vehicle_angular_velocity
+    type: px4_msgs::msg::VehicleAngularVelocity
+
+  - topic: /fmu/out/rover_speed_status
+    type: px4_msgs::msg::RoverSpeedStatus
+
+  - topic: /fmu/out/rover_rate_status
+    type: px4_msgs::msg::RoverRateStatus
+
+  - topic: /fmu/out/rover_attitude_status
+    type: px4_msgs::msg::RoverAttitudeStatus
+
+  - topic: /fmu/out/rover_rate_setpoint
+    type: px4_msgs::msg::RoverRateSetpoint
+
+  - topic: /fmu/out/rover_throttle_setpoint
+    type: px4_msgs::msg::RoverThrottleSetpoint
+
+  - topic: /fmu/out/rover_steering_setpoint
+    type: px4_msgs::msg::RoverSteeringSetpoint
 
   - topic: /fmu/out/vehicle_land_detected
     type: px4_msgs::msg::VehicleLandDetected
