@@ -1654,14 +1654,35 @@ void SeptentrioDriver::handle_inject_data_topic()
 
 			// Prevent injection of data from self or from ground if moving base and this is rover.
 			if ((_instance == Instance::Secondary && msg.device_id != get_device_id()) || (_instance == Instance::Main && msg.device_id == get_device_id()) || _receiver_setup != ReceiverSetup::MovingBase) {
-				/* Write the message to the gps device. Note that the message could be fragmented.
-				* But as we don't write anywhere else to the device during operation, we don't
-				* need to assemble the message first.
-				*/
-				write(msg.data, msg.len);
+				// Complete UART transfer is required before counting an RTCM injection.
+				// A short serial write must not be silently counted as successful.
+				const bool length_ok = msg.len > 0 && msg.len <= sizeof(msg.data);
+				size_t offset = 0;
+				const hrt_abstime deadline = hrt_absolute_time() + 50000; // 50 ms upper bound
 
-				++_current_interval_rtcm_injections;
-				_last_rtcm_injection_time = hrt_absolute_time();
+				while (length_ok && offset < msg.len && hrt_absolute_time() < deadline) {
+					const size_t remaining = msg.len - offset;
+					const int written = write(&msg.data[offset], remaining);
+
+					if (written > 0 && static_cast<size_t>(written) <= remaining) {
+						offset += static_cast<size_t>(written);
+
+					} else if (written == 0) {
+						px4_usleep(1000);
+
+					} else {
+						break; // serial error or invalid transfer count
+					}
+				}
+
+				if (length_ok && offset == msg.len) {
+					++_current_interval_rtcm_injections;
+					_last_rtcm_injection_time = hrt_absolute_time();
+
+				} else {
+					SEP_WARN("RTCM injection incomplete (%u/%u bytes)",
+						 (unsigned)offset, (unsigned)msg.len);
+				}
 			}
 		}
 
