@@ -146,6 +146,10 @@ public:
 	void setAuxVelData(const auxVelSample &auxvel_sample);
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODER)
+	void setWheelEncoderData(const wheelEncoderSample &wheel_encoder_sample);
+#endif // CONFIG_EKF2_WHEEL_ENCODER
+
 	void setSystemFlagData(const systemFlagUpdate &system_flags);
 
 	// return a address to the parameters struct
@@ -461,6 +465,9 @@ protected:
 #if defined(CONFIG_EKF2_AUXVEL)
 	RingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
 #endif // CONFIG_EKF2_AUXVEL
+#if defined(CONFIG_EKF2_WHEEL_ENCODER)
+	RingBuffer<wheelEncoderSample> *_wheel_encoder_buffer {nullptr};
+#endif // CONFIG_EKF2_WHEEL_ENCODER
 	RingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
 
 #if defined(CONFIG_EKF2_BAROMETER)
