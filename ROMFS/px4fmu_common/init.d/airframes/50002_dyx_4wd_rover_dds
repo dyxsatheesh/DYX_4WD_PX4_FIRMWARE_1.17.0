@@ -16,9 +16,10 @@ param set UXRCE_DDS_AG_IP 170461697
 param set UXRCE_DDS_PTCFG 0
 param set UXRCE_DDS_SYNCT 1
 
-# Offboard link-loss policy; verify after boot.
-param set COM_OF_LOSS_T 0.5
-param set COM_OBL_RC_ACT 7
+# Match the previously working v1.16.2 Offboard-loss defaults.
+# Do not overwrite QGC-saved failsafe preferences at every boot.
+param set-default COM_OF_LOSS_T 1.0
+param set-default COM_OBL_RC_ACT 0
 
 # Actuator function/PWM safety policy only. Does NOT itself implement
 # a firmware-owned three-second spray pulse; that port remains separate.

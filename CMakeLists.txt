@@ -120,9 +120,12 @@ execute_process(
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 
-# if proper git tag unavilable default to v0.0.0
+# DYX: This custom firmware is based on PX4 v1.17.0.
+# A shallow/local clone without release tags must not report firmware 0.0.0.
+# Mark fallback metadata as a custom development build, not an official release.
 if(NOT ${GIT_DESCRIBE_RESULT} MATCHES "0")
-	set(PX4_GIT_TAG "v0.0.0")
+	set(PX4_GIT_TAG "v1.17.0-dev")
+	message(WARNING "No PX4 release Git tag found; using DYX v1.17.0-dev firmware metadata")
 endif()
 
 message(STATUS "PX4_GIT_TAG: ${PX4_GIT_TAG}")
